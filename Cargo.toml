@@ -1,0 +1,12 @@
+[package]
+name = "iks"
+version = "0.2.0"
+edition = "2024"
+
+[lib]
+name = "iks"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = "0.25.0"
+iks = "0.2.0"
