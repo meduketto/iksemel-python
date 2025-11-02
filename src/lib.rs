@@ -1,14 +1,27 @@
 use pyo3::prelude::*;
 
-/// Formats the sum of two numbers as string.
-#[pyfunction]
-fn sum_as_string(a: usize, b: usize) -> PyResult<String> {
-    Ok((a + b).to_string())
+use iks::DocumentParser;
+use iks::SyncCursor;
+
+#[pyclass(name = "Document", frozen)]
+struct PyDocument {
+    inner: SyncCursor,
 }
 
-/// A Python module implemented in Rust.
-#[pymodule]
-fn iks(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(sum_as_string, m)?)?;
+#[pymethods]
+impl PyDocument {
+    #[new]
+    fn new(bytes: &[u8]) -> Self {
+        let mut parser = DocumentParser::with_size_hint(bytes.len());
+        parser.parse_bytes(bytes).unwrap();
+        let document = parser.into_document().unwrap();
+        let inner = SyncCursor::new(document);
+        Self { inner }
+    }
+}
+
+#[pymodule(name = "iks")]
+fn pyiks(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add_class::<PyDocument>()?;
     Ok(())
 }
