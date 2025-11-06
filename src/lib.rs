@@ -13,6 +13,7 @@ use pyo3::exceptions::PyException;
 use pyo3::exceptions::PyMemoryError;
 use pyo3::prelude::*;
 
+use iks::Document;
 use iks::DocumentParser;
 use iks::ParseError;
 use iks::SyncCursor;
@@ -50,21 +51,161 @@ struct PyDocument {
 #[pymethods]
 impl PyDocument {
     #[new]
-    fn new(bytes: &[u8]) -> Result<Self, PyIksError> {
-        let mut parser = DocumentParser::with_size_hint(bytes.len());
-        parser.parse_bytes(bytes)?;
-        let document = parser.into_document()?;
+    fn new(name: &str) -> Result<Self, PyIksError> {
+        let document = Document::new(name)?;
         let inner = SyncCursor::new(document);
         Ok(Self { inner })
     }
 
-    fn find_tag(&self, tag: &str) -> Option<Self> {
-        let node = self.inner.clone().find_tag(tag);
-        if node.is_null() {
-            Some(Self { inner: node })
-        } else {
-            None
+    //
+    // Edit
+    //
+
+    fn insert_tag(&self, tag: &str) -> Result<PyDocument, PyIksError> {
+        match self.inner.clone().insert_tag(tag) {
+            Ok(sc) => Ok(Self { inner: sc }),
+            Err(err) => Err(err.into()),
         }
+    }
+
+    fn append_tag(&self, tag: &str) -> Result<PyDocument, PyIksError> {
+        match self.inner.clone().append_tag(tag) {
+            Ok(sc) => Ok(Self { inner: sc }),
+            Err(err) => Err(err.into()),
+        }
+    }
+
+    fn prepend_tag(&self, tag: &str) -> Result<PyDocument, PyIksError> {
+        match self.inner.clone().prepend_tag(tag) {
+            Ok(sc) => Ok(Self { inner: sc }),
+            Err(err) => Err(err.into()),
+        }
+    }
+
+    fn insert_cdata(&self, cdata: &str) -> Result<PyDocument, PyIksError> {
+        match self.inner.clone().insert_cdata(cdata) {
+            Ok(sc) => Ok(Self { inner: sc }),
+            Err(err) => Err(err.into()),
+        }
+    }
+
+    fn append_cdata(&self, cdata: &str) -> Result<PyDocument, PyIksError> {
+        match self.inner.clone().append_cdata(cdata) {
+            Ok(sc) => Ok(Self { inner: sc }),
+            Err(err) => Err(err.into()),
+        }
+    }
+
+    fn prepend_cdata(&self, cdata: &str) -> Result<PyDocument, PyIksError> {
+        match self.inner.clone().prepend_cdata(cdata) {
+            Ok(sc) => Ok(Self { inner: sc }),
+            Err(err) => Err(err.into()),
+        }
+    }
+
+    fn insert_attribute(&self, name: &str, value: &str) -> Result<PyDocument, PyIksError> {
+        match self.inner.clone().insert_attribute(name, value) {
+            Ok(sc) => Ok(Self { inner: sc }),
+            Err(err) => Err(err.into()),
+        }
+    }
+
+    fn set_attribute(&self, name: &str, value: Option<&str>) -> Result<PyDocument, PyIksError> {
+        match self.inner.clone().set_attribute(name, value) {
+            Ok(sc) => Ok(Self { inner: sc }),
+            Err(err) => Err(err.into()),
+        }
+    }
+
+    fn remove(&self) -> () {
+        self.inner.clone().remove()
+    }
+
+    //
+    // Navigation
+    //
+
+    fn next(&self) -> Self {
+        Self {
+            inner: self.inner.clone().next(),
+        }
+    }
+
+    fn next_tag(&self) -> Self {
+        Self {
+            inner: self.inner.clone().next_tag(),
+        }
+    }
+
+    fn previous(&self) -> Self {
+        Self {
+            inner: self.inner.clone().previous(),
+        }
+    }
+
+    fn previous_tag(&self) -> Self {
+        Self {
+            inner: self.inner.clone().previous_tag(),
+        }
+    }
+
+    fn parent(&self) -> Self {
+        Self {
+            inner: self.inner.clone().parent(),
+        }
+    }
+
+    fn root(&self) -> Self {
+        Self {
+            inner: self.inner.clone().root(),
+        }
+    }
+
+    fn first_child(&self) -> Self {
+        Self {
+            inner: self.inner.clone().first_child(),
+        }
+    }
+
+    fn last_child(&self) -> Self {
+        Self {
+            inner: self.inner.clone().last_child(),
+        }
+    }
+
+    fn first_tag(&self) -> Self {
+        Self {
+            inner: self.inner.clone().first_tag(),
+        }
+    }
+
+    fn find_tag(&self, tag: &str) -> Self {
+        let node = self.inner.clone().find_tag(tag);
+        Self { inner: node }
+    }
+
+    //
+    // Properties
+    //
+
+    fn is_null(&self) -> bool {
+        self.inner.is_null()
+    }
+
+    fn is_tag(&self) -> bool {
+        self.inner.is_tag()
+    }
+
+    fn name(&self) -> String {
+        self.inner.name().to_string()
+    }
+
+    fn attribute(&self, name: &str) -> Option<String> {
+        self.inner.attribute(name).map(|attr| attr.to_string())
+    }
+
+    fn cdata(&self) -> String {
+        self.inner.cdata().to_string()
     }
 
     fn __str__(&self) -> String {
@@ -72,8 +213,18 @@ impl PyDocument {
     }
 }
 
+#[pyfunction]
+fn parse(bytes: &[u8]) -> Result<PyDocument, PyIksError> {
+    let mut parser = DocumentParser::with_size_hint(bytes.len());
+    parser.parse_bytes(bytes)?;
+    let document = parser.into_document()?;
+    let inner = SyncCursor::new(document);
+    Ok(PyDocument { inner })
+}
+
 #[pymodule(name = "iks")]
 fn pyiks(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyDocument>()?;
+    m.add_function(wrap_pyfunction!(parse, m)?)?;
     Ok(())
 }
