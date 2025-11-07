@@ -3,7 +3,7 @@ requires = ["maturin>=1.9,<2.0"]
 build-backend = "maturin"
 
 [project]
-name = "iks"
+name = "pyiks"
 requires-python = ">=3.10"
 license = "LGPL-3.0-or-later"
 classifiers = [

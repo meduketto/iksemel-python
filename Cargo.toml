@@ -1,10 +1,10 @@
 [package]
-name = "iks"
+name = "pyiks"
 version = "0.4.0"
 edition = "2024"
 
 [lib]
-name = "iks"
+name = "pyiks"
 crate-type = ["cdylib"]
 
 [dependencies]

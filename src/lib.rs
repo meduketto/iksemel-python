@@ -8,15 +8,14 @@
 ** the License, or (at your option) any later version.
 */
 
-use pyo3::create_exception;
-use pyo3::exceptions::PyException;
-use pyo3::exceptions::PyMemoryError;
-use pyo3::prelude::*;
-
 use iks::Document;
 use iks::DocumentParser;
 use iks::ParseError;
 use iks::SyncCursor;
+use pyo3::create_exception;
+use pyo3::exceptions::PyException;
+use pyo3::exceptions::PyMemoryError;
+use pyo3::prelude::*;
 
 create_exception!(pyiks, BadXmlError, PyException);
 
@@ -37,9 +36,32 @@ impl From<ParseError> for PyIksError {
 impl From<PyIksError> for PyErr {
     fn from(err: PyIksError) -> Self {
         match err {
-            PyIksError::NoMemory => PyMemoryError::new_err("iks alloc failed"),
+            PyIksError::NoMemory => PyMemoryError::new_err("pyiks alloc failed"),
             PyIksError::BadXml(msg) => BadXmlError::new_err(msg),
         }
+    }
+}
+
+#[pyclass]
+struct PyDocumentChildren {
+    inner: SyncCursor,
+}
+
+#[pymethods]
+impl PyDocumentChildren {
+    fn __iter__(&self) -> Self {
+        PyDocumentChildren {
+            inner: self.inner.clone(),
+        }
+    }
+
+    fn __next__(&mut self) -> Option<PyDocument> {
+        if self.inner.is_null() {
+            return None;
+        }
+        let current = self.inner.clone();
+        self.inner = self.inner.clone().next();
+        Some(PyDocument { inner: current })
     }
 }
 
@@ -185,6 +207,15 @@ impl PyDocument {
     }
 
     //
+    // Iterators
+    //
+    fn __iter__(&self) -> PyDocumentChildren {
+        PyDocumentChildren {
+            inner: self.inner.clone().first_child(),
+        }
+    }
+
+    //
     // Properties
     //
 
@@ -213,8 +244,20 @@ impl PyDocument {
     }
 }
 
+#[derive(FromPyObject)]
+pub enum XmlText {
+    #[pyo3(transparent, annotation = "str")]
+    Str(String),
+    #[pyo3(transparent, annotation = "bytes")]
+    Bytes(Vec<u8>),
+}
+
 #[pyfunction]
-fn parse(bytes: &[u8]) -> Result<PyDocument, PyIksError> {
+fn parse(xml_text: XmlText) -> Result<PyDocument, PyIksError> {
+    let bytes = match xml_text {
+        XmlText::Str(ref s) => s.as_bytes(),
+        XmlText::Bytes(ref b) => b.as_slice(),
+    };
     let mut parser = DocumentParser::with_size_hint(bytes.len());
     parser.parse_bytes(bytes)?;
     let document = parser.into_document()?;
@@ -222,9 +265,10 @@ fn parse(bytes: &[u8]) -> Result<PyDocument, PyIksError> {
     Ok(PyDocument { inner })
 }
 
-#[pymodule(name = "iks")]
+#[pymodule]
 fn pyiks(py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyDocument>()?;
+    m.add_class::<PyDocumentChildren>()?;
     m.add_function(wrap_pyfunction!(parse, m)?)?;
     m.add("BadXmlError", py.get_type::<BadXmlError>())?;
     Ok(())

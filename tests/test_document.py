@@ -8,21 +8,26 @@
 
 import pytest
 
-import iks
+import pyiks
 
 
 def test_parse():
-    xml = b"<a>lala</a>"
-    doc = iks.parse(xml)
-    assert str(doc) == xml.decode("utf-8")
+    xml = "<a>lala</a>"
+    doc = pyiks.parse(xml)
+    assert str(doc) == xml
 
 
 def test_parse_error():
-    with pytest.raises(iks.BadXmlError):
-        iks.parse(b"<<>")
+    with pytest.raises(pyiks.BadXmlError):
+        pyiks.parse(b"<<>")
 
 
 def test_build():
-    doc = iks.Document("a")
+    doc = pyiks.Document("a")
     doc.insert_tag("b").insert_cdata("lala").parent().set_attribute("x", "123")
     assert str(doc) == '<a><b x="123">lala</b></a>'
+
+
+def test_iter():
+    doc = pyiks.parse("<a><b/><c/><d/></a>")
+    assert [tag.name() for tag in doc] == ["b", "c", "d"]

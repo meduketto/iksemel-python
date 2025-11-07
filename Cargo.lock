@@ -181,14 +181,6 @@ checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
 [[package]]
 name = "iks"
 version = "0.4.0"
-dependencies = [
- "iks 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "pyo3",
-]
-
-[[package]]
-name = "iks"
-version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b3e0f02032fa2c081fb3e21a158dff3a2b3231ecc1601a1d1d189b32530b698a"
 dependencies = [
@@ -305,6 +297,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "89ae43fd86e4158d6db51ad8e2b80f313af9cc74f5c0e03ccb87de09998732de"
 dependencies = [
  "unicode-ident",
+]
+
+[[package]]
+name = "pyiks"
+version = "0.4.0"
+dependencies = [
+ "iks",
+ "pyo3",
 ]
 
 [[package]]
