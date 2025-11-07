@@ -5,6 +5,7 @@ build-backend = "maturin"
 [project]
 name = "iks"
 requires-python = ">=3.10"
+license = "LGPL-3.0-or-later"
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -18,6 +19,9 @@ classifiers = [
     "Topic :: Text Processing :: Markup :: XML",
 ]
 dynamic = ["version"]
+
+[project.urls]
+homepage = "https://github.com/meduketto/iksemel-python"
 
 [tool.maturin]
 features = ["pyo3/extension-module"]

@@ -223,8 +223,9 @@ fn parse(bytes: &[u8]) -> Result<PyDocument, PyIksError> {
 }
 
 #[pymodule(name = "iks")]
-fn pyiks(m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn pyiks(py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyDocument>()?;
     m.add_function(wrap_pyfunction!(parse, m)?)?;
+    m.add("BadXmlError", py.get_type::<BadXmlError>())?;
     Ok(())
 }
