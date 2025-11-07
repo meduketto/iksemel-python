@@ -21,7 +21,6 @@ permissions:
 jobs:
   linux:
     runs-on: ${{ matrix.platform.runner }}
-    if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
     strategy:
       matrix:
         platform:
@@ -55,7 +54,6 @@ jobs:
 
   musllinux:
     runs-on: ${{ matrix.platform.runner }}
-    if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
     strategy:
       matrix:
         platform:
@@ -89,7 +87,6 @@ jobs:
 
   windows:
     runs-on: ${{ matrix.platform.runner }}
-    if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
     strategy:
       matrix:
         platform:
@@ -117,7 +114,6 @@ jobs:
 
   macos:
     runs-on: ${{ matrix.platform.runner }}
-    if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
     strategy:
       matrix:
         platform:
@@ -144,7 +140,6 @@ jobs:
 
   sdist:
     runs-on: ubuntu-latest
-    if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
     steps:
       - uses: actions/checkout@v4
       - name: Build sdist
