@@ -1,11 +1,32 @@
-# iksemel
+# pyiks
 
-Copyright (c) 2000-2025 Gurer Ozen <meduketto at gmail.com>
+Copyright (c) 2025 Gurer Ozen <meduketto at gmail.com>
 
-[iks][iks] is an XML parser library for Jabber/XMPP and
-general XML processing applications. It aims to be easy to use,
-fast, and usable in resource-constrained environments.
+[pyiks][pyiks] is a Python binding for the [iksemel][iksemel]
+which is an XML parser library for Jabber/XMPP and
+general XML processing applications written in Rust.
+Iksemel aims to be easy to use, fast, and usable in
+resource-constrained environments.
 
+# Features
+
+pyiks only provides the DOM interface of iksemel with this
+first release.
+
+# Usage
+
+Here is a simple example showing parsing and editing:
+
+```python
+xml_text = "<doc><a>123</a><b><a>456</a><a>789</a></b></doc>"
+
+doc = pyiks.parse(xml_text)
+
+doc.find_tag("b").first_tag().remove()
+doc.find_tag("a").set_attribute("x", "1")
+
+assert str(doc) == '<doc><a x="1">123</a><b><a>789</a></b></doc>'
+```
 
 # License
 
@@ -23,4 +44,5 @@ You should have received a copy of the GNU Lesser General Public License
 along with Iksemel. If not, see <https://www.gnu.org/licenses/>.
 
 
-[iks]: https://github.com/meduketto/iksemel-rust
+[iksemel]: https://github.com/meduketto/iksemel-rust
+[pyiks]: https://github.com/meduketto/iksemel-python
