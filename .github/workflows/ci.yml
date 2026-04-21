@@ -13,6 +13,10 @@ on:
     branches: ["main"]
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: read
 
@@ -43,5 +47,5 @@ jobs:
       - name: Run tests
         run: |
           pip install pytest
-          pip install dist/*.whl
+          python -m pip install --find-links=dist/ pyiks
           python -m pytest tests/ -v
