@@ -1,6 +1,6 @@
 # pyiks
 
-Copyright (c) 2025 Gurer Ozen <meduketto at gmail.com>
+Copyright (c) 2025-2026 Gurer Ozen <meduketto at gmail.com>
 
 [pyiks][pyiks] is a Python binding for the [iksemel][iksemel]
 which is an XML parser library for Jabber/XMPP and
