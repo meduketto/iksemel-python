@@ -42,5 +42,6 @@ jobs:
 
       - name: Run tests
         run: |
+          pip install pytest
           pip install dist/*.whl
-          pytest tests/ -v
+          python -m pytest tests/ -v
