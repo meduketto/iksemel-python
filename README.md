@@ -8,6 +8,10 @@ general XML processing applications written in Rust.
 Iksemel aims to be easy to use, fast, and usable in
 resource-constrained environments.
 
+[![PyPI Version](https://img.shields.io/pypi/v/pyiks)](https://pypi.org/search/?q=pyiks)
+[![PyPI Downloads](https://img.shields.io/pepy/dt/pyiks)](https://pepy.tech/projects/pyiks)
+![GitHub License](https://img.shields.io/github/license/meduketto/iksemel-python)
+
 # Features
 
 pyiks only provides the DOM interface of iksemel with this
