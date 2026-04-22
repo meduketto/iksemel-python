@@ -8,20 +8,30 @@
 ** the License, or (at your option) any later version.
 */
 
+use iks::BadJid;
 use iks::Document;
 use iks::DocumentParser;
+use iks::Jid;
 use iks::ParseError;
 use iks::SyncCursor;
+use iks::XmppClient;
+use iks::XmppClientError;
 use pyo3::create_exception;
 use pyo3::exceptions::PyException;
 use pyo3::exceptions::PyMemoryError;
 use pyo3::prelude::*;
 
 create_exception!(pyiks, BadXmlError, PyException);
+create_exception!(pyiks, BadJidError, PyException);
+create_exception!(pyiks, XmppError, PyException);
 
 enum PyIksError {
     NoMemory,
     BadXml(&'static str),
+    BadJid(&'static str),
+    StreamError(&'static str),
+    IOError(String),
+    TlsError(String),
 }
 
 impl From<ParseError> for PyIksError {
@@ -33,11 +43,35 @@ impl From<ParseError> for PyIksError {
     }
 }
 
+impl From<BadJid> for PyIksError {
+    fn from(err: BadJid) -> Self {
+        match err {
+            BadJid(msg) => PyIksError::BadJid(msg),
+        }
+    }
+}
+
+impl From<XmppClientError> for PyIksError {
+    fn from(err: XmppClientError) -> Self {
+        match err {
+            XmppClientError::NoMemory => PyIksError::NoMemory,
+            XmppClientError::BadXml(msg) => PyIksError::BadXml(msg),
+            XmppClientError::BadStream(msg) => PyIksError::StreamError(msg),
+            XmppClientError::IOError(err) => PyIksError::IOError(err.to_string()),
+            XmppClientError::TlsError(err) => PyIksError::TlsError(err.to_string()),
+        }
+    }
+}
+
 impl From<PyIksError> for PyErr {
     fn from(err: PyIksError) -> Self {
         match err {
             PyIksError::NoMemory => PyMemoryError::new_err("pyiks alloc failed"),
             PyIksError::BadXml(msg) => BadXmlError::new_err(msg),
+            PyIksError::BadJid(msg) => BadJidError::new_err(msg),
+            PyIksError::StreamError(msg) => XmppError::new_err(msg),
+            PyIksError::IOError(err) => XmppError::new_err(err),
+            PyIksError::TlsError(err) => XmppError::new_err(err),
         }
     }
 }
@@ -269,11 +303,73 @@ fn parse(xml_text: XmlText) -> Result<PyDocument, PyIksError> {
     Ok(PyDocument { inner })
 }
 
+#[pyclass(name = "XmppClient")]
+struct PyXmppClient {
+    client: std::sync::Arc<std::sync::Mutex<XmppClient>>,
+}
+
+// Arc<Mutex<XmppClient>> guarantees PyXmppClient is Send and Sync
+unsafe impl Send for PyXmppClient {}
+unsafe impl Sync for PyXmppClient {}
+
+#[pymethods]
+impl PyXmppClient {
+    #[new]
+    #[pyo3(signature = (jid, password, debug=false, server=None))]
+    fn new(
+        jid: String,
+        password: String,
+        debug: bool,
+        server: Option<String>,
+    ) -> Result<Self, PyIksError> {
+        let jid = Jid::new(&jid)?;
+        let client = XmppClient::build(jid, password)
+            .debug(debug)
+            .server(server)
+            .connect()?;
+        let wrapped = std::sync::Arc::new(std::sync::Mutex::new(client));
+        Ok(Self { client: wrapped })
+    }
+
+    fn wait_for_stanza(&self, py: Python<'_>) -> Result<PyDocument, PyIksError> {
+        let result = py.detach(move || {
+            let mut client = self.client.lock().unwrap();
+            client.wait_for_stanza()
+        });
+        let document = result?;
+        Ok(PyDocument {
+            inner: SyncCursor::new(document),
+        })
+    }
+
+    fn send_stanza(&self, stanza: &PyDocument) -> Result<(), PyIksError> {
+        let mut client = self.client.lock().unwrap();
+        client.send_bytes(stanza.inner.to_string().into_bytes())?;
+        Ok(())
+    }
+
+    fn request_roster(&self) -> Result<(), PyIksError> {
+        let mut client = self.client.lock().unwrap();
+        client.request_roster()?;
+        Ok(())
+    }
+
+    fn send_message(&self, to: String, body: String) -> Result<(), PyIksError> {
+        let mut client = self.client.lock().unwrap();
+        let to_jid = Jid::new(&to)?;
+        client.send_message(to_jid, &body)?;
+        Ok(())
+    }
+}
+
 #[pymodule]
 fn pyiks(py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyDocument>()?;
     m.add_class::<PyDocumentChildren>()?;
+    m.add_class::<PyXmppClient>()?;
     m.add_function(wrap_pyfunction!(parse, m)?)?;
     m.add("BadXmlError", py.get_type::<BadXmlError>())?;
+    m.add("BadJidError", py.get_type::<BadJidError>())?;
+    m.add("XmppError", py.get_type::<XmppError>())?;
     Ok(())
 }
