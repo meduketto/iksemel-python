@@ -14,8 +14,8 @@ resource-constrained environments.
 
 # Features
 
-pyiks only provides the DOM interface of iksemel with this
-first release.
+pyiks only provides the DOM and XMPP client interfaces of iksemel
+at this time.
 
 # Usage
 
@@ -30,6 +30,17 @@ doc.find_tag("b").first_tag().remove()
 doc.find_tag("a").set_attribute("x", "1")
 
 assert str(doc) == '<doc><a x="1">123</a><b><a>789</a></b></doc>'
+```
+
+A basic XMPP client example:
+```python
+client = pyiks.XmppClient(my_jid, my_password)
+
+# Will complete the negotiation and login process.
+# The channel bind response will be returned as the first stanza.
+stanza = client.wait_for_stanza()
+
+client.send_message(to_jid, "hello!")
 ```
 
 # License
