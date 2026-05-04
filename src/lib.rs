@@ -8,6 +8,10 @@
 ** the License, or (at your option) any later version.
 */
 
+use std::sync::Arc;
+use std::sync::Mutex;
+use std::time::Duration;
+
 use iks::BadJid;
 use iks::Document;
 use iks::DocumentParser;
@@ -305,7 +309,7 @@ fn parse(xml_text: XmlText) -> Result<PyDocument, PyIksError> {
 
 #[pyclass(name = "XmppClient")]
 struct PyXmppClient {
-    client: std::sync::Arc<std::sync::Mutex<XmppClient>>,
+    client: Arc<Mutex<XmppClient>>,
 }
 
 // Arc<Mutex<XmppClient>> guarantees PyXmppClient is Send and Sync
@@ -317,29 +321,42 @@ impl PyXmppClient {
     #[new]
     #[pyo3(signature = (jid, password, debug=false, server=None))]
     fn new(
+        py: Python<'_>,
         jid: String,
         password: String,
         debug: bool,
         server: Option<String>,
     ) -> Result<Self, PyIksError> {
         let jid = Jid::new(&jid)?;
-        let client = XmppClient::build(jid, password)
-            .debug(debug)
-            .server(server)
-            .connect()?;
-        let wrapped = std::sync::Arc::new(std::sync::Mutex::new(client));
-        Ok(Self { client: wrapped })
+        py.detach(|| {
+            let client = XmppClient::build(jid, password)
+                .debug(debug)
+                .server(server)
+                .connect()?;
+            Ok(Self {
+                client: Arc::new(Mutex::new(client)),
+            })
+        })
     }
 
-    fn wait_for_stanza(&self, py: Python<'_>) -> Result<PyDocument, PyIksError> {
-        let result = py.detach(move || {
-            let mut client = self.client.lock().unwrap();
-            client.wait_for_stanza()
-        });
-        let document = result?;
-        Ok(PyDocument {
-            inner: SyncCursor::new(document),
-        })
+    fn wait_for_stanza(&self, py: Python<'_>) -> PyResult<PyDocument> {
+        loop {
+            let result = py.detach(|| {
+                let mut client = self.client.lock().unwrap();
+                client.wait_for_stanza_timeout(Some(Duration::from_millis(250)))
+            });
+            match result {
+                Err(e) => return Err(PyIksError::from(e).into()),
+                Ok(Some(document)) => {
+                    return Ok(PyDocument {
+                        inner: SyncCursor::new(document),
+                    });
+                }
+                Ok(None) => {
+                    py.check_signals()?;
+                }
+            }
+        }
     }
 
     fn send_stanza(&self, stanza: &PyDocument) -> Result<(), PyIksError> {
