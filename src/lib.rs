@@ -81,14 +81,14 @@ impl From<PyIksError> for PyErr {
 }
 
 #[pyclass]
-struct PyDocumentChildren {
+struct DocumentChildrenIterator {
     inner: SyncCursor,
 }
 
 #[pymethods]
-impl PyDocumentChildren {
+impl DocumentChildrenIterator {
     fn __iter__(&self) -> Self {
-        PyDocumentChildren {
+        DocumentChildrenIterator {
             inner: self.inner.clone(),
         }
     }
@@ -247,8 +247,8 @@ impl PyDocument {
     //
     // Iterators
     //
-    fn __iter__(&self) -> PyDocumentChildren {
-        PyDocumentChildren {
+    fn __iter__(&self) -> DocumentChildrenIterator {
+        DocumentChildrenIterator {
             inner: self.inner.clone().first_child(),
         }
     }
@@ -382,7 +382,7 @@ impl PyXmppClient {
 #[pymodule]
 fn _pyiks(py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyDocument>()?;
-    m.add_class::<PyDocumentChildren>()?;
+    m.add_class::<DocumentChildrenIterator>()?;
     m.add_class::<PyXmppClient>()?;
     m.add_function(wrap_pyfunction!(parse, m)?)?;
     m.add("BadXmlError", py.get_type::<BadXmlError>())?;
