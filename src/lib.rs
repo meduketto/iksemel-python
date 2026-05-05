@@ -380,7 +380,7 @@ impl PyXmppClient {
 }
 
 #[pymodule]
-fn pyiks(py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn _pyiks(py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyDocument>()?;
     m.add_class::<PyDocumentChildren>()?;
     m.add_class::<PyXmppClient>()?;

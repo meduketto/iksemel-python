@@ -1,1 +1,1 @@
-from .pyiks import *
+from _pyiks import *
