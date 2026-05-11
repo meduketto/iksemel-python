@@ -10,6 +10,7 @@
 
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::sync::PoisonError;
 use std::time::Duration;
 
 use iks::BadJid;
@@ -23,6 +24,7 @@ use iks::XmppClientError;
 use pyo3::create_exception;
 use pyo3::exceptions::PyException;
 use pyo3::exceptions::PyMemoryError;
+use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 
 create_exception!(pyiks, BadXmlError, PyException);
@@ -31,6 +33,7 @@ create_exception!(pyiks, XmppError, PyException);
 
 enum PyIksError {
     NoMemory,
+    PoisonedMutex,
     BadXml(&'static str),
     BadJid(&'static str),
     StreamError(&'static str),
@@ -67,10 +70,17 @@ impl From<XmppClientError> for PyIksError {
     }
 }
 
+impl<T> From<PoisonError<T>> for PyIksError {
+    fn from(_: PoisonError<T>) -> Self {
+        PyIksError::PoisonedMutex
+    }
+}
+
 impl From<PyIksError> for PyErr {
     fn from(err: PyIksError) -> Self {
         match err {
             PyIksError::NoMemory => PyMemoryError::new_err("pyiks alloc failed"),
+            PyIksError::PoisonedMutex => PyRuntimeError::new_err("poisoned mutex"),
             PyIksError::BadXml(msg) => BadXmlError::new_err(msg),
             PyIksError::BadJid(msg) => BadJidError::new_err(msg),
             PyIksError::StreamError(msg) => XmppError::new_err(msg),
@@ -294,6 +304,17 @@ pub enum XmlText {
     Bytes(Vec<u8>),
 }
 
+/// Parse given text and return a 'Document' if successful.
+///
+/// Args:
+///     xml_text: The XML text to parse.
+///
+/// Returns:
+///     Parsed XML tree.
+///
+/// Raises:
+///     BadXmlError: If the XML text is not well-formed.
+///     MemoryError: Not enough memory for the document tree.
 #[pyfunction]
 fn parse(xml_text: XmlText) -> Result<PyDocument, PyIksError> {
     let bytes = match xml_text {
@@ -341,12 +362,12 @@ impl PyXmppClient {
 
     fn wait_for_stanza(&self, py: Python<'_>) -> PyResult<PyDocument> {
         loop {
-            let result = py.detach(|| {
-                let mut client = self.client.lock().unwrap();
-                client.wait_for_stanza_timeout(Some(Duration::from_millis(250)))
+            let result: Result<Option<Document>, PyIksError> = py.detach(|| {
+                let mut client = self.client.lock()?;
+                Ok(client.wait_for_stanza_timeout(Some(Duration::from_millis(250)))?)
             });
             match result {
-                Err(e) => return Err(PyIksError::from(e).into()),
+                Err(e) => return Err(e.into()),
                 Ok(Some(document)) => {
                     return Ok(PyDocument {
                         inner: SyncCursor::new(document),
@@ -360,19 +381,19 @@ impl PyXmppClient {
     }
 
     fn send_stanza(&self, stanza: &PyDocument) -> Result<(), PyIksError> {
-        let mut client = self.client.lock().unwrap();
+        let mut client = self.client.lock()?;
         client.send_bytes(stanza.inner.to_string().into_bytes())?;
         Ok(())
     }
 
     fn request_roster(&self) -> Result<(), PyIksError> {
-        let mut client = self.client.lock().unwrap();
+        let mut client = self.client.lock()?;
         client.request_roster()?;
         Ok(())
     }
 
     fn send_message(&self, to: String, body: String) -> Result<(), PyIksError> {
-        let mut client = self.client.lock().unwrap();
+        let mut client = self.client.lock()?;
         let to_jid = Jid::new(&to)?;
         client.send_message(to_jid, &body)?;
         Ok(())
@@ -380,7 +401,7 @@ impl PyXmppClient {
 }
 
 #[pymodule]
-fn _pyiks(py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn _iks(py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyDocument>()?;
     m.add_class::<DocumentChildrenIterator>()?;
     m.add_class::<PyXmppClient>()?;

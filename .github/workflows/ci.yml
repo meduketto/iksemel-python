@@ -42,10 +42,17 @@ jobs:
         uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
         with:
           command: build
-          args: --release --out dist
+          args: --verbose --release --out dist
 
       - name: Run tests
         run: |
-          pip install pytest
+          python -m pip install pytest
           python -m pip install --find-links=dist/ pyiks
-          python -m pytest tests/ -v
+          cd tests
+          python -m pytest -v
+
+  all-tests-passed:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "All matrix jobs completed!"
