@@ -1,4 +1,4 @@
-from _pyiks import (
+from ._iks import (
     BadJidError,
     BadXmlError,
     Document,

@@ -27,3 +27,8 @@ homepage = "https://github.com/meduketto/iksemel-python"
 
 [tool.maturin]
 features = ["pyo3/extension-module"]
+exclude = [
+    ".github/**/*",
+    ".gitignore",
+]
+module-name = "pyiks._iks"
