@@ -1,4 +1,4 @@
-# 0.7.0 (TBD)
+# 0.7.0 (2026-05-11)
 
 * type stubs
 * wait_for_stanza handles ctrl-c.
