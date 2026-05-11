@@ -46,7 +46,7 @@ jobs:
 
       - name: Run tests
         run: |
-          python -V
           python -m pip install pytest
           python -m pip install --find-links=dist/ pyiks
-          python -m pytest tests/ -v
+          cd tests
+          python -m pytest -v
