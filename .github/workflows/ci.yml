@@ -50,3 +50,9 @@ jobs:
           python -m pip install --find-links=dist/ pyiks
           cd tests
           python -m pytest -v
+
+  all-tests-passed:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "All matrix jobs completed!"
