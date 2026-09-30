@@ -11,5 +11,5 @@ name = "_iks"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = "0.28.3"
+pyo3 = "0.29.0"
 iks = "0.7.0"
