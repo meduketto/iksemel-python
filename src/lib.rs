@@ -333,10 +333,6 @@ struct PyXmppClient {
     client: Arc<Mutex<XmppClient>>,
 }
 
-// Arc<Mutex<XmppClient>> guarantees PyXmppClient is Send and Sync
-unsafe impl Send for PyXmppClient {}
-unsafe impl Sync for PyXmppClient {}
-
 #[pymethods]
 impl PyXmppClient {
     #[new]
